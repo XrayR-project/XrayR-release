@@ -172,8 +172,8 @@ install_XrayR() {
     if [[ ! -f /etc/XrayR/custom_inbound.json ]]; then
         cp custom_inbound.json /etc/XrayR/
     fi
-    if [[ ! -f /etc/XrayR/ruelist ]]; then
-        cp ruelist /etc/XrayR/
+    if [[ ! -f /etc/XrayR/rulelist ]]; then
+        cp rulelist /etc/XrayR/
     fi
     curl -o /usr/bin/XrayR -Ls https://raw.githubusercontent.com/XrayR-project/XrayR-release/master/XrayR.sh
     chmod +x /usr/bin/XrayR
