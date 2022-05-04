@@ -32,12 +32,14 @@ fi
 arch=$(arch)
 
 if [[ $arch == "x86_64" || $arch == "x64" || $arch == "amd64" ]]; then
-  arch="64"
+    arch="64"
 elif [[ $arch == "aarch64" || $arch == "arm64" ]]; then
-  arch="arm64-v8a"
+    arch="arm64-v8a"
+elif [[ $arch == "s390x" ]]; then
+    arch="s390x"
 else
-  arch="64"
-  echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
+    arch="64"
+    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
 fi
 
 echo "架构: ${arch}"
