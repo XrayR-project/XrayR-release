@@ -7,7 +7,7 @@ Find the source code here: [XrayR-project/XrayR](https://github.com/XrayR-projec
 
 # 详细使用教程
 
-[教程](https://crackair.gitbook.io/xrayr-project/)
+[教程](https://xrayr-project.github.io/XrayR-doc/)
 
 # 一键安装
 
