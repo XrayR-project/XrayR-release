@@ -15,6 +15,6 @@ jobs:
       - uses: pixta-dev/repository-mirroring-action@v1
         with:
           target_repo_url:
-            git@gitlab.com:xrayr-project/XrayR.git
+            git@gitlab.com:xrayr-project/XrayR-release.git
           ssh_private_key:
             ${{ secrets.SSH_PRIVATEKEY }}
