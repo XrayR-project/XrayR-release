@@ -121,12 +121,15 @@ install_XrayR() {
             exit 1
         fi
     else
-        last_version=$1
-        url="https://github.com/XrayR-project/XrayR/releases/download/v${last_version}/XrayR-linux-${arch}.zip"
+        if [ $1 == v*]; then
+            last_version=$1
+	else
+	    last_version="v"$1
+        url="https://github.com/XrayR-project/XrayR/releases/download/${last_version}/XrayR-linux-${arch}.zip"
         echo -e "开始安装 XrayR v$1"
         wget -q -N --no-check-certificate -O /usr/local/XrayR/XrayR-linux.zip ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}下载 XrayR v$1 失败，请确保此版本存在${plain}"
+            echo -e "${red}下载 XrayR ${last_version} 失败，请确保此版本存在${plain}"
             exit 1
         fi
     fi
