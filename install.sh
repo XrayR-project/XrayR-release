@@ -121,7 +121,7 @@ install_XrayR() {
             exit 1
         fi
     else
-        if [[ $1 == v*]]; then
+        if [[ $1 == v* ]]; then
             last_version=$1
 	else
 	    last_version="v"$1
