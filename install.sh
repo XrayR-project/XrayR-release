@@ -209,5 +209,5 @@ install_XrayR() {
 
 echo -e "${green}开始安装${plain}"
 install_base
-install_acme
+# install_acme
 install_XrayR $1
