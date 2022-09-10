@@ -17,7 +17,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/XrayR-project/XrayR-release/ma
 # Docker 安装
 
 ```
-docker pull mengxin239/xrayr:latest && docker run --restart=always --name xrayr -d -v ${PATH_TO_CONFIG}/config.yml:/etc/XrayR/config.yml --network=host crackair/xrayr:latest
+docker pull ghcr.io/xrayr-project/xrayr:latest && docker run --restart=always --name xrayr -d -v ${PATH_TO_CONFIG}/config.yml:/etc/XrayR/config.yml --network=host
 ```
 
 # Docker compose 安装
