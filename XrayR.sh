@@ -13,6 +13,8 @@ version="v1.0.0"
 # check os
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
+elif [[ -f /etc/alpine-release ]]; then
+    release="alpine"
 elif cat /etc/issue | grep -Eqi "debian"; then
     release="debian"
 elif cat /etc/issue | grep -Eqi "ubuntu"; then
@@ -25,6 +27,10 @@ elif cat /proc/version | grep -Eqi "ubuntu"; then
     release="ubuntu"
 elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
     release="centos"
+elif cat /proc/version | grep -Eqi "alpine"; then
+    release="alpine"
+elif cat /etc/issue | grep -Eqi "alpine"; then
+    release="alpine"
 else
     echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
@@ -35,6 +41,7 @@ os_version=""
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
+
 if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
     os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
 fi
@@ -45,11 +52,15 @@ if [[ x"${release}" == x"centos" ]]; then
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}请使用 Ubuntu 16.04 或更高版本的系统！${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" == x"alpine" ]]; then
+    if [[ ${os_version} -lt 3.8 ]]; then
+        echo -e "${red}请使用 Alpine 3.8 或更高版本的系统！${plain}\n" && exit 1
     fi
 fi
 
@@ -149,11 +160,18 @@ uninstall() {
         fi
         return 0
     fi
-    systemctl stop XrayR
-    systemctl disable XrayR
-    rm /etc/systemd/system/XrayR.service -f
-    systemctl daemon-reload
-    systemctl reset-failed
+    if [[ x"${release}" == x"alpine" ]]; then
+        service XrayR stop
+        rc-update delete XrayR
+        rm /etc/init.d/XrayR -f
+    else
+        systemctl stop XrayR
+        systemctl disable XrayR
+        rm /etc/systemd/system/XrayR.service -f
+        systemctl daemon-reload
+        systemctl reset-failed
+    fi
+    
     rm /etc/XrayR/ -rf
     rm /usr/local/XrayR/ -rf
 
@@ -172,7 +190,11 @@ start() {
         echo ""
         echo -e "${green}XrayR已运行，无需再次启动，如需重启请选择重启${plain}"
     else
-        systemctl start XrayR
+        if [[ x"${release}" == x"alpine" ]]; then
+            service XrayR start
+        else
+            systemctl start XrayR
+        fi
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
@@ -188,7 +210,11 @@ start() {
 }
 
 stop() {
-    systemctl stop XrayR
+    if [[ x"${release}" == x"alpine" ]]; then
+        service XrayR stop
+    else
+        systemctl stop XrayR
+    fi
     sleep 2
     check_status
     if [[ $? == 1 ]]; then
@@ -203,7 +229,11 @@ stop() {
 }
 
 restart() {
-    systemctl restart XrayR
+    if [[ x"${release}" == x"alpine" ]]; then
+        service XrayR restart
+    else
+        systemctl restart XrayR
+    fi
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
@@ -217,14 +247,22 @@ restart() {
 }
 
 status() {
-    systemctl status XrayR --no-pager -l
+    if [[ x"${release}" == x"alpine" ]]; then
+        service XrayR status
+    else
+        systemctl status XrayR --no-pager -l
+    fi
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 enable() {
-    systemctl enable XrayR
+    if [[ x"${release}" == x"alpine" ]]; then
+        rc-update add XrayR
+    else
+        systemctl enable XrayR
+    fi
     if [[ $? == 0 ]]; then
         echo -e "${green}XrayR 设置开机自启成功${plain}"
     else
@@ -237,7 +275,11 @@ enable() {
 }
 
 disable() {
-    systemctl disable XrayR
+    if [[ x"${release}" == x"alpine" ]]; then
+        rc-update delete XrayR
+    else
+        systemctl disable XrayR
+    fi
     if [[ $? == 0 ]]; then
         echo -e "${green}XrayR 取消开机自启成功${plain}"
     else
@@ -250,14 +292,26 @@ disable() {
 }
 
 show_log() {
-    journalctl -u XrayR.service -e --no-pager -f
+    if [[ x"${release}" == x"alpine" ]]; then
+        echo -e "${red}OpenRC不支持查看日志${plain}"
+        echo -e "${yellow}请使用文本处理工具直接查阅日志（默认保存位置为/etc/XrayR/）${plain}"
+    else
+        journalctl -u XrayR.service -e --no-pager -f
+    fi
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 install_bbr() {
-    bash <(curl -L -s https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh)
+    if [[ x"${release}" == x"alpine" ]]; then
+        echo -e "${red}由于Alpine采用musl运行库，不支持使用该脚本安装bbr！${plain}\n"
+        echo -e "${yellow}请使用以下命令设置系统内置bbr${plain}"
+        echo -e "${yellow}sysctl -w net.ipv4.tcp_congestion_control=bbr${plain}\n"
+        exit 1
+    else
+        bash <(curl -L -s https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh)
+    fi
     #if [[ $? == 0 ]]; then
     #    echo ""
     #    echo -e "${green}安装 bbr 成功，请重启服务器${plain}"
@@ -283,23 +337,43 @@ update_shell() {
 
 # 0: running, 1: not running, 2: not installed
 check_status() {
-    if [[ ! -f /etc/systemd/system/XrayR.service ]]; then
-        return 2
-    fi
-    temp=$(systemctl status XrayR | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ x"${temp}" == x"running" ]]; then
-        return 0
+    if [[ x"${release}" == x"alpine" ]]; then
+        if [[ ! -f /etc/init.d/XrayR ]]; then
+            return 2
+        fi
+        temp=$(service XrayR status | grep status | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        if [[ x"${temp}" == x"started" ]]; then
+            return 0
+        else
+            return 1
+        fi
     else
-        return 1
+        if [[ ! -f /etc/systemd/system/XrayR.service ]]; then
+            return 2
+        fi
+        temp=$(systemctl status XrayR | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        if [[ x"${temp}" == x"running" ]]; then
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
 check_enabled() {
-    temp=$(systemctl is-enabled XrayR)
-    if [[ x"${temp}" == x"enabled" ]]; then
-        return 0
+    if [[ x"${release}" == x"alpine" ]]; then
+        if [[ ! -f /etc/runlevels/default/XrayR ]]; then
+            return 1
+        else
+            return 0
+        fi
     else
-        return 1;
+        temp=$(systemctl is-enabled XrayR)
+        if [[ x"${temp}" == x"enabled" ]]; then
+            return 0
+        else
+            return 1;
+        fi
     fi
 }
 

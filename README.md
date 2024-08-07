@@ -11,6 +11,13 @@ Find the source code here: [XrayR-project/XrayR](https://github.com/XrayR-projec
 
 # 一键安装
 
+> [!IMPORTANT]
+> 如果使用的是Alpine Linux，请事先使用以下命令安装脚本执行所需的依赖！
+> 
+> ```
+> apk add curl bash grep sed cat
+> ```
+
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/XrayR-project/XrayR-release/master/install.sh)
 ```

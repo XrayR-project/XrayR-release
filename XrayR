@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+name=$RC_SVCNAME
+description="XrayR Service"
+supervisor="supervise-daemon"
+command="/usr/local/XrayR/XrayR"
+command_args="--config /etc/XrayR/config.yml"
+supervise_daemon_args=" -d /usr/local/XrayR/"
+command_user="root:root"
+
+depend() {
+	after net dns 
+	use net 
+}

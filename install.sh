@@ -13,6 +13,8 @@ cur_dir=$(pwd)
 # check os
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
+elif [[ -f /etc/alpine-release ]]; then
+    release="alpine"
 elif cat /etc/issue | grep -Eqi "debian"; then
     release="debian"
 elif cat /etc/issue | grep -Eqi "ubuntu"; then
@@ -25,6 +27,10 @@ elif cat /proc/version | grep -Eqi "ubuntu"; then
     release="ubuntu"
 elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
     release="centos"
+elif cat /proc/version | grep -Eqi "alpine"; then
+    release="alpine"
+elif cat /etc/issue | grep -Eqi "alpine"; then
+    release="alpine"
 else
     echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
@@ -65,11 +71,15 @@ if [[ x"${release}" == x"centos" ]]; then
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}请使用 Ubuntu 16.04 或更高版本的系统！${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" == x"alpine" ]]; then
+    if [[ ${os_version} -lt 3.8 ]]; then
+        echo -e "${red}请使用 Alpine 3.8 或更高版本的系统！${plain}\n" && exit 1
     fi
 fi
 
@@ -77,6 +87,9 @@ install_base() {
     if [[ x"${release}" == x"centos" ]]; then
         yum install epel-release -y
         yum install wget curl unzip tar crontabs socat -y
+    elif [[ x"${release}" == x"alpine" ]]; then
+        apk update
+        apk add wget curl unzip tar socat
     else
         apt update -y
         apt install wget curl unzip tar cron socat -y
@@ -85,14 +98,26 @@ install_base() {
 
 # 0: running, 1: not running, 2: not installed
 check_status() {
-    if [[ ! -f /etc/systemd/system/XrayR.service ]]; then
-        return 2
-    fi
-    temp=$(systemctl status XrayR | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ x"${temp}" == x"running" ]]; then
-        return 0
+    if [[ x"${release}" == x"alpine" ]]; then
+        if [[ ! -f /etc/init.d/XrayR ]]; then
+            return 2
+        fi
+        temp=$(service XrayR status | grep status | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        if [[ x"${temp}" == x"started" ]]; then
+            return 0
+        else
+            return 1
+        fi
     else
-        return 1
+        if [[ ! -f /etc/systemd/system/XrayR.service ]]; then
+            return 2
+        fi
+        temp=$(systemctl status XrayR | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        if [[ x"${temp}" == x"running" ]]; then
+            return 0
+        else
+            return 1
+        fi
     fi
 }
 
@@ -139,13 +164,26 @@ install_XrayR() {
     rm XrayR-linux.zip -f
     chmod +x XrayR
     mkdir /etc/XrayR/ -p
-    rm /etc/systemd/system/XrayR.service -f
-    file="https://github.com/XrayR-project/XrayR-release/raw/master/XrayR.service"
-    wget -q -N --no-check-certificate -O /etc/systemd/system/XrayR.service ${file}
+    if [[ x"${release}" == x"alpine" ]]; then
+        #handle openrc
+        service XrayR stop
+        rc-update delete XrayR
+        file="https://github.com/XrayR-project/XrayR-release/raw/master/XrayR"
+        wget -q -N --no-check-certificate -O /etc/init.d/XrayR ${file}
+        chmod +x /etc/init.d/XrayR
+        rc-update add XrayR
+    else
+        #handle systemd
+        rm /etc/systemd/system/XrayR.service -f
+        file="https://github.com/XrayR-project/XrayR-release/raw/master/XrayR.service"
+        wget -q -N --no-check-certificate -O /etc/systemd/system/XrayR.service ${file}
+        systemctl daemon-reload
+        systemctl stop XrayR
+        systemctl enable XrayR
+    fi
+    
     #cp -f XrayR.service /etc/systemd/system/
-    systemctl daemon-reload
-    systemctl stop XrayR
-    systemctl enable XrayR
+
     echo -e "${green}XrayR ${last_version}${plain} 安装完成，已设置开机自启"
     cp geoip.dat /etc/XrayR/
     cp geosite.dat /etc/XrayR/ 
